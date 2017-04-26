@@ -1,9 +1,39 @@
 import React, { Component } from 'react';
 import { gql, graphql } from 'react-apollo';
+import PropTypes from 'prop-types';
+
+let id=0;
 
 class App extends Component {
+  contextTypes
+  handleClick = () => {
+    // Failing means that the query data becomes completely empty without any errors being logged.
+
+    // Removing `name` from query will fail.
+    const query = gql`
+      query MyQuery {
+        people {
+          id
+          name
+        }
+      }
+    `;
+    const {client} = this.context;
+    const data = client.readQuery({query});
+
+    // This fails
+    data.people.push({__typename: 'Person', id: `custom-${id++}`});
+
+    // This works
+    // data.people.push({__typename: 'Person', id: `custom-${id++}`, name: 'Test'});
+
+    client.writeQuery({query, data});
+  }
   render() {
     const { data: { loading, people } } = this.props;
+    if (!loading) {
+      console.log(`Rendered people: ${people}`);
+    }
     return (
       <main>
         <header>
@@ -27,14 +57,20 @@ class App extends Component {
             {people.map(person => (
               <li key={person.id}>
                 {person.name}
+                {person.createdAt}
               </li>
             ))}
           </ul>
         )}
+        <button onClick={this.handleClick}>Click</button>
       </main>
     );
   }
 }
+
+App.contextTypes = {
+  client: PropTypes.object,
+};
 
 export default graphql(
   gql`{
